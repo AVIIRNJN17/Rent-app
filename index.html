@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>AVHII RENT APP</title>
+    <meta name="description" content="Premium Rent Management, Electricity Bill Calculator, and Personal Expense Tracker with Professional Landlord Receipts by Abhishek Ranjan." />
+    <meta property="og:title" content="AVHII RENT APP" />
+    <meta property="og:description" content="Premium Rent Management, Electricity Bill Calculator, and Personal Expense Tracker with Professional Landlord Receipts by Abhishek Ranjan." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#D4AF37" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  </head>
+  <body class="bg-[#FAF8F5] text-zinc-900 dark:bg-[#121210] dark:text-zinc-100 antialiased selection:bg-[#D4AF37]/30 selection:text-amber-900 dark:selection:text-amber-200">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(err => {
+            console.log('SW registration note:', err);
+          });
+        });
+      }
+    </script>
+  </body>
+</html>
+

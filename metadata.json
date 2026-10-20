@@ -1,0 +1,6 @@
+{
+  "name": "AVHII RENT APP",
+  "description": "Premium Rent Management, Electricity Bill Calculator, and Personal Expense Tracker with Professional Landlord Receipts by Abhishek Ranjan.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

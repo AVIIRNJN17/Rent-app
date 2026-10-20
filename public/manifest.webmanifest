@@ -1,0 +1,19 @@
+{
+  "name": "AVHII RENT APP",
+  "short_name": "AVHII RENT",
+  "description": "Premium Rent, Electricity Bill Calculator, and Personal Expense Tracker with Receipts by Abhishek Ranjan",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#121210",
+  "theme_color": "#D4AF37",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/cat-mascot.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["finance", "utilities", "productivity"]
+}
