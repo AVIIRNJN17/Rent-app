@@ -387,6 +387,7 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
 
   // Web Audio & WebSocket References
   const wsRef = useRef<WebSocket | null>(null);
+  const isSessionReadyRef = useRef<boolean>(false);
   const inputAudioCtxRef = useRef<AudioContext | null>(null);
   const outputAudioCtxRef = useRef<AudioContext | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
@@ -529,20 +530,26 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
 
       // 2. Setup WebSocket to backend bridge
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/live`;
+      const wsUrl = `${protocol}//${window.location.host}/api/live`;
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log('Connected to Gemini Live bridge');
-        setIsConnected(true);
-        setIsConnecting(false);
+        console.log('Voice WebSocket opened; waiting for Gemini session');
       };
 
       ws.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data);
+          if (msg.ready) {
+            isSessionReadyRef.current = true;
+            setIsConnected(true);
+            setIsConnecting(false);
+          }
           if (msg.error) {
+            isSessionReadyRef.current = false;
+            setIsConnected(false);
+            setIsConnecting(false);
             setErrorMessage(msg.error);
           }
           if (msg.interrupted) {
@@ -580,21 +587,23 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
         console.error('WebSocket error:', e);
         setErrorMessage(
           language === 'hi'
-            ? 'वॉइस कनेक्शन में त्रुटि। कृपया सुनिश्चित करें कि GEMINI_API_KEY सेट है।'
-            : 'Voice connection error. Please ensure GEMINI_API_KEY is configured on the server.'
+            ? 'वॉइस सर्विस कनेक्ट नहीं हो सकी। कृपया दोबारा कोशिश करें।'
+            : 'Voice service connection failed. Please retry and check server logs.'
         );
         setIsConnecting(false);
       };
 
       ws.onclose = () => {
         console.log('Gemini Live WebSocket disconnected');
+        isSessionReadyRef.current = false;
         setIsConnected(false);
         setIsConnecting(false);
+        setErrorMessage((previous) => previous || 'Voice connection closed. Please retry.');
       };
 
       // 3. Audio Processing: stream PCM chunks
       processor.onaudioprocess = (e) => {
-        if (isMutedRef.current || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+        if (isMutedRef.current || !isSessionReadyRef.current || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
           return;
         }
 
@@ -631,6 +640,7 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
 
   // Close session cleanly
   const disconnectSession = () => {
+    isSessionReadyRef.current = false;
     stopAudioPlayback();
 
     if (processorNodeRef.current) {
@@ -678,7 +688,7 @@ export const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({
   const handleSendTextPrompt = (text: string) => {
     if (!text.trim()) return;
 
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+    if (isSessionReadyRef.current && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ text }));
       setTranscriptHistory((prev) => [
         ...prev,
