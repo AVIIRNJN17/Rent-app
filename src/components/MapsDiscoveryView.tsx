@@ -27,6 +27,21 @@ interface PlaceResult {
   reviewSnippets?: string[];
 }
 
+// This public Google Maps link does not require Gemini requests or a new API key.
+function getGoogleMapsSearchUrl(
+  query: string,
+  address: string,
+  coords: { latitude: number; longitude: number } | null
+): string {
+  const location = coords
+    ? `${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}`
+    : address.trim();
+  const searchTerms = [query.trim(), location ? `near ${location}` : '']
+    .filter(Boolean)
+    .join(' ');
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchTerms)}`;
+}
+
 export const MapsDiscoveryView: React.FC<MapsDiscoveryViewProps> = ({
   profile,
   language,
@@ -39,6 +54,7 @@ export const MapsDiscoveryView: React.FC<MapsDiscoveryViewProps> = ({
   const [responseMarkdown, setResponseMarkdown] = useState<string | null>(null);
   const [places, setPlaces] = useState<PlaceResult[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [fallbackSearchUrl, setFallbackSearchUrl] = useState<string | null>(null);
 
   // Auto detect GPS Coordinates
   const handleDetectLocation = () => {
@@ -80,6 +96,7 @@ export const MapsDiscoveryView: React.FC<MapsDiscoveryViewProps> = ({
 
     setIsLoading(true);
     setErrorMessage(null);
+    setFallbackSearchUrl(null);
     setResponseMarkdown(null);
     setPlaces([]);
 
@@ -104,6 +121,7 @@ export const MapsDiscoveryView: React.FC<MapsDiscoveryViewProps> = ({
       setPlaces(data.places || []);
     } catch (err: any) {
       console.error('Maps search error:', err);
+      setFallbackSearchUrl(getGoogleMapsSearchUrl(q, addressInput, coords));
       setErrorMessage(
         err.message || 'Error executing Google Maps grounding search. Verify your GEMINI_API_KEY.'
       );
@@ -199,7 +217,7 @@ export const MapsDiscoveryView: React.FC<MapsDiscoveryViewProps> = ({
             <input
               type="text"
               value={addressInput}
-              onChange={(e) => setAddressInput(e.target.value)}
+              onChange={(e) => { setAddressInput(e.target.value); setFallbackSearchUrl(null); }}
               placeholder="e.g. Near Metro Station, Sector 62..."
               className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-950/80 border border-zinc-700 focus:border-amber-500 text-xs text-white placeholder-zinc-500 outline-none"
             />
@@ -213,17 +231,17 @@ export const MapsDiscoveryView: React.FC<MapsDiscoveryViewProps> = ({
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => { setSearchQuery(e.target.value); setFallbackSearchUrl(null); }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleSearch();
                 }}
                 placeholder="e.g. Find D-Mart or cheapest ration grocery shops..."
-                className="flex-1 px-3.5 py-2.5 rounded-xl bg-zinc-950/80 border border-zinc-700 focus:border-amber-500 text-xs text-white placeholder-zinc-500 outline-none"
+                className="flex-1 min-w-0 px-3.5 py-2.5 rounded-xl bg-zinc-950/80 border border-zinc-700 focus:border-amber-500 text-xs text-white placeholder-zinc-500 outline-none"
               />
               <button
                 onClick={() => handleSearch()}
                 disabled={isLoading || !searchQuery.trim()}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-zinc-950 font-bold text-xs hover:brightness-110 active:scale-95 disabled:opacity-50 transition-all shadow-md shadow-amber-500/20"
+                className="shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-zinc-950 font-bold text-xs hover:brightness-110 active:scale-95 disabled:opacity-50 transition-all shadow-md shadow-amber-500/20"
               >
                 {isLoading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -234,6 +252,18 @@ export const MapsDiscoveryView: React.FC<MapsDiscoveryViewProps> = ({
               </button>
             </div>
           </div>
+        </div>
+
+        <div className="mt-2 flex justify-end">
+          <a
+            href={getGoogleMapsSearchUrl(searchQuery, addressInput, coords)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-amber-300 hover:text-amber-100 underline underline-offset-4"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            <span>{language === 'hi' ? 'सीधे Google Maps पर खोजें (AI की जरूरत नहीं)' : 'Search directly on Google Maps (no AI required)'}</span>
+          </a>
         </div>
 
         {/* Quick Category Buttons */}
@@ -267,6 +297,25 @@ export const MapsDiscoveryView: React.FC<MapsDiscoveryViewProps> = ({
           <div>
             <h4 className="font-bold">Search Error</h4>
             <p className="mt-0.5 leading-relaxed">{errorMessage}</p>
+            {fallbackSearchUrl && (
+              <div className="mt-3">
+                <p className="mb-2 text-amber-100">
+                  {language === 'hi'
+                    ? 'AI खोज उपलब्ध नहीं है, लेकिन Google Maps पर दुकानें और सेवाएं खोज सकते हैं।'
+                    : 'AI search is unavailable, but you can still find shops and services on Google Maps.'}
+                </p>
+                <a
+                  href={fallbackSearchUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 px-4 py-2.5 font-bold text-zinc-950 hover:brightness-110 active:scale-95 transition-all"
+                >
+                  <MapPin className="w-4 h-4" />
+                  <span>{language === 'hi' ? 'Google Maps पर खोजें' : 'Continue in Google Maps'}</span>
+                  <ExternalLink className="w-4 h-4" />
+                </a>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -371,7 +420,7 @@ export const MapsDiscoveryView: React.FC<MapsDiscoveryViewProps> = ({
       )}
 
       {/* Empty State Help Guide */}
-      {!isLoading && !responseMarkdown && places.length === 0 && (
+      {!isLoading && !responseMarkdown && places.length === 0 && !errorMessage && (
         <div className="p-8 rounded-3xl bg-zinc-50 dark:bg-[#141311] border border-dashed border-amber-500/30 text-center space-y-3">
           <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-[#D4AF37] flex items-center justify-center mx-auto">
             <Store className="w-6 h-6" />
